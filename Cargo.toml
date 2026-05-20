@@ -1,0 +1,44 @@
+[package]
+name = "tetris"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+# Use `cargo run -F dev` during development for dynamic linking.
+# Never enable for release builds.
+dev = ["bevy/dynamic_linking"]
+
+[dependencies]
+bevy = { version = "^0.18.1", features = ["2d", "debug"] }
+log = { version = "*", features = [
+    "max_level_debug",
+    "release_max_level_warn",
+] }
+bevy_ecs = "0.18.1"
+rand_core = "0.10.1"
+bevy_rand = "0.14.2"
+bevy_prng = { version = "0.14.2", features = ["wyrand"] }
+rand = "0.10.1"
+
+# ─── Dev: fastest compile times, moderate perf ───────────────────────
+
+[profile.dev]
+opt-level = 1
+# "line-tables-only" gives you useful backtraces and panic locations
+# without the massive link-time cost of full Bevy debug info.
+# Switch to `true` if you need to step-through debug with variable inspection.
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+opt-level = 3
+
+# ─── Release: max performance, smallest binary ──────────────────────
+
+[profile.release]
+opt-level = 3
+# Single codegen unit — allows LLVM to optimise across the whole crate.
+codegen-units = 1
+# Full ("fat") LTO across all crates — best runtime perf.
+lto = "fat"
+# Remove debug symbols and symbol tables from the final binary.
+strip = true
