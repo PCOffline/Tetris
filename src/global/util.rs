@@ -1,6 +1,6 @@
 use bevy::math::{IVec2, Vec3};
 
-use crate::{BOARD_HEIGHT, BOARD_WIDTH};
+use crate::global::constants::*;
 
 pub fn shifted(positions: &[IVec2], delta: IVec2) -> Vec<IVec2> {
     positions.iter().map(|position| position + delta).collect()

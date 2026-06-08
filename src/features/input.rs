@@ -1,8 +1,20 @@
 use bevy::prelude::*;
 
-use crate::{ActivePiece, Position, board::Board, piece, util};
+use crate::features::{board::Board, piece};
+use crate::global::{
+    components::{ActivePiece, Position},
+    util,
+};
 
-pub fn move_piece_on_keyboard_input(
+pub struct InputPlugin;
+
+impl Plugin for InputPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, move_piece_on_keyboard_input);
+    }
+}
+
+fn move_piece_on_keyboard_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut active_piece_query: Populated<&mut Position, With<ActivePiece>>,
     board: Res<Board>,

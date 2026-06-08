@@ -1,10 +1,18 @@
 use bevy::prelude::*;
 
-use crate::{BOARD_HEIGHT, BOARD_WIDTH};
+use crate::global::constants::*;
 
 #[derive(Resource)]
 pub struct Board {
     cells: [[Option<Entity>; BOARD_HEIGHT]; BOARD_WIDTH],
+}
+
+pub struct BoardPlugin;
+
+impl Plugin for BoardPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<Board>();
+    }
 }
 
 impl Default for Board {
