@@ -29,7 +29,7 @@ impl Board {
     }
 
     pub fn is_occupied(&self, pos: &IVec2) -> bool {
-        self.in_bounds(pos) && self.get(pos).is_some()
+        self.in_bounds(pos) && self.get(*pos).is_some()
     }
 
     pub fn set(&mut self, pos: IVec2, entity: Entity) {
@@ -48,7 +48,7 @@ impl Board {
         self.cells[pos.x as usize][pos.y as usize] = None;
     }
 
-    pub fn get(&self, pos: &IVec2) -> Option<Entity> {
+    pub fn get(&self, pos: IVec2) -> Option<Entity> {
         if !self.in_bounds(&pos) {
             return None;
         }
