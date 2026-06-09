@@ -1,68 +1,45 @@
 use bevy::prelude::*;
 
-use crate::features::{board::Board, piece};
 use crate::global::{
-    components::{ActivePiece, Position},
-    util,
+    messages::{MovePiece, Movement, RotatePiece},
+    states::GameState,
 };
 
 pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, move_piece_on_keyboard_input);
+        app.add_systems(
+            Update,
+            move_piece_on_keyboard_input.run_if(in_state(GameState::Started)),
+        );
     }
 }
 
 fn move_piece_on_keyboard_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut active_piece_query: Populated<&mut Position, With<ActivePiece>>,
-    board: Res<Board>,
+    mut rotate_piece_writer: MessageWriter<RotatePiece>,
+    mut move_piece_writer: MessageWriter<MovePiece>,
 ) {
-    let piece_positions: Vec<IVec2> = active_piece_query
-        .iter()
-        .map(|Position(piece)| *piece)
-        .collect();
-
-    if (keyboard_input.just_pressed(KeyCode::KeyA)
-        || keyboard_input.just_pressed(KeyCode::ArrowLeft))
-        && piece::can_occupy(&util::shifted(&piece_positions, ivec2(-1, 0)), &board)
+    if keyboard_input.just_pressed(KeyCode::KeyA) || keyboard_input.just_pressed(KeyCode::ArrowLeft)
     {
-        for mut position in &mut active_piece_query {
-            position.0.x -= 1;
-        }
-    } else if (keyboard_input.just_pressed(KeyCode::KeyD)
-        || keyboard_input.just_pressed(KeyCode::ArrowRight))
-        && piece::can_occupy(&util::shifted(&piece_positions, ivec2(1, 0)), &board)
+        move_piece_writer.write(MovePiece(Movement::Left));
+    } else if keyboard_input.just_pressed(KeyCode::KeyD)
+        || keyboard_input.just_pressed(KeyCode::ArrowRight)
     {
-        for mut position in &mut active_piece_query {
-            position.0.x += 1;
-        }
+        move_piece_writer.write(MovePiece(Movement::Right));
     }
 
-    if (keyboard_input.just_pressed(KeyCode::KeyS)
-        || keyboard_input.just_pressed(KeyCode::ArrowDown))
-        && piece::can_occupy(&util::shifted(&piece_positions, ivec2(0, -1)), &board)
+    if keyboard_input.just_pressed(KeyCode::KeyS) || keyboard_input.just_pressed(KeyCode::ArrowDown)
     {
-        for mut position in &mut active_piece_query {
-            position.0.y -= 1;
-        }
+        move_piece_writer.write(MovePiece(Movement::Down));
     }
 
     if keyboard_input.just_pressed(KeyCode::Space) {
-        let delta_y = piece::get_bottom_legal_position(&piece_positions, &board);
-
-        for mut position in &mut active_piece_query.into_iter() {
-            position.0.y -= delta_y;
-        }
+        move_piece_writer.write(MovePiece(Movement::HardDrop));
     }
 
     if keyboard_input.just_pressed(KeyCode::KeyW) || keyboard_input.just_pressed(KeyCode::ArrowUp) {
-        // let rotation = collisions::rotate(piece_positions, pivot);
-
-        // if collisions::can_occupy(rotation, &board) {
-        // } else {
-        // TODO: move pivot point if possible
-        // }
+        rotate_piece_writer.write(RotatePiece);
     }
 }

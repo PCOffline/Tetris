@@ -3,12 +3,14 @@ use bevy::prelude::*;
 use crate::{
     features::{
         board::Board,
-        tetromino::{TETROMINOES, Tetromino},
+        tetromino::{self, TETROMINOES, Tetromino},
     },
     global::{
         components::{ActivePiece, Block, Position},
         constants::*,
-        resources::DebugMode,
+        messages::{MovePiece, Movement, RotatePiece},
+        resources::DebugConfig,
+        states::GameState,
         util,
     },
 };
@@ -19,7 +21,20 @@ struct GravityTimer(Timer);
 #[derive(Resource)]
 struct ActivePieceState {
     tetromino: Tetromino,
-    rotation: u8,
+    rotation: usize,
+    anchor: Position,
+    lock_timer: Timer,
+}
+
+impl Default for ActivePieceState {
+    fn default() -> Self {
+        ActivePieceState {
+            tetromino: Tetromino::I,
+            rotation: 0,
+            anchor: Position(IVec2::splat(0)),
+            lock_timer: Timer::from_seconds(0.5, TimerMode::Once),
+        }
+    }
 }
 
 #[derive(Message)]
@@ -28,6 +43,11 @@ struct PieceLocked;
 #[derive(Message)]
 struct GameStarted;
 
+#[derive(Component)]
+struct Clearing {
+    timer: Timer,
+}
+
 pub struct PiecePlugin;
 
 impl Plugin for PiecePlugin {
@@ -35,15 +55,40 @@ impl Plugin for PiecePlugin {
         app.add_message::<PieceLocked>()
             .insert_resource(GravityTimer(Timer::from_seconds(0.5, TimerMode::Repeating)))
             .add_message::<GameStarted>()
-            .add_systems(
-                Startup,
-                spawn_initial_piece.run_if(not(resource_exists::<DebugMode>)),
-            )
+            .add_message::<MovePiece>()
+            .add_message::<RotatePiece>()
             .add_systems(
                 Update,
-                (spawn_next_piece, lock_active_piece_on_bottom_collision).chain(),
+                (
+                    move_piece,
+                    rotate_piece,
+                    lock_active_piece_on_bottom_collision,
+                    clear_filled_row,
+                    animate_clearing_row,
+                    delete_filled_row,
+                )
+                    .run_if(in_state(GameState::Started))
+                    .chain(),
             )
-            .add_systems(FixedUpdate, apply_gravity);
+            .insert_resource(ActivePieceState::default());
+
+        let debug_config = app.world().get_resource::<DebugConfig>();
+        let gravity = debug_config.is_none_or(|config| config.gravity);
+        let auto_start = debug_config.is_none_or(|config| config.auto_start);
+
+        if auto_start {
+            app.add_systems(Startup, spawn_initial_piece).add_systems(
+                Update,
+                spawn_next_piece.run_if(in_state(GameState::Started)),
+            );
+        }
+
+        if gravity {
+            app.add_systems(
+                FixedUpdate,
+                apply_gravity.run_if(in_state(GameState::Started)),
+            );
+        }
     }
 }
 
@@ -67,20 +112,37 @@ pub fn get_bottom_legal_position(current: &[IVec2], board: &Board) -> i32 {
     }
 }
 
-pub fn spawn_piece(commands: &mut Commands, tetromino: Tetromino, anchor: IVec2, rotation: usize) {
+pub fn spawn_piece(
+    commands: &mut Commands,
+    tetromino: Tetromino,
+    anchor: IVec2,
+    rotation: usize,
+    board: &Board,
+) -> bool {
     let block_size = Vec2::splat(1.0 - PADDING_SIZE);
     let piece = tetromino.shape();
 
-    let positions = util::shifted(&piece.offsets[rotation], anchor);
+    let mut positions = util::shifted(&piece.offsets[rotation], anchor);
+    let occupied = can_occupy(&positions, &board);
+
+    if occupied {
+        positions = positions
+            .into_iter()
+            .filter(|pos| !board.is_occupied(pos))
+            .collect();
+    }
 
     for pos in positions.iter() {
         commands.spawn((
             Block,
+            Transform::from_translation(util::translate_position_to_grid(*pos)),
             Position(*pos),
             Sprite::from_color(piece.color, block_size), // Add some padding for visual separation
-                                                         // ActivePiece,
+            ActivePiece,
         ));
     }
+
+    occupied
 }
 
 fn spawn_initial_piece(mut writer: MessageWriter<GameStarted>) {
@@ -91,6 +153,7 @@ fn spawn_next_piece(
     mut commands: Commands,
     mut piece_locked_reader: MessageReader<PieceLocked>,
     mut game_started_reader: MessageReader<GameStarted>,
+    board: Res<Board>,
 ) {
     for _ in piece_locked_reader
         .read()
@@ -99,11 +162,19 @@ fn spawn_next_piece(
     {
         let random = rand::random::<u8>() % 7;
         let tetromino = TETROMINOES.get(random as usize).expect("Random should always be moduloed by the length of the Tetromino enum, so never should be an invalid integer").to_owned();
+        // TODO: Make them spawn so that it always touches the top? Or above the board?
+        let anchor = ivec2(4, 16);
+        let rotation = 0;
 
-        spawn_piece(&mut commands, tetromino, ivec2(4, 18), 0);
+        if !spawn_piece(&mut commands, tetromino, anchor, rotation, &board) {
+            commands.set_state(GameState::Ended);
+        }
+
         commands.insert_resource(ActivePieceState {
             tetromino,
-            rotation: 0,
+            rotation: rotation,
+            anchor: Position(anchor),
+            lock_timer: Timer::from_seconds(0.5, TimerMode::Once),
         });
     }
 }
@@ -111,15 +182,21 @@ fn spawn_next_piece(
 fn lock_active_piece_on_bottom_collision(
     mut commands: Commands,
     active_piece_query: Populated<(Entity, &Position), With<ActivePiece>>,
+    mut active_piece_state: ResMut<ActivePieceState>,
     mut board: ResMut<Board>,
     mut piece_locked_message: MessageWriter<PieceLocked>,
+    time: Res<Time>,
 ) {
+    active_piece_state.lock_timer.tick(time.delta());
+
     let positions: Vec<IVec2> = active_piece_query
         .iter()
         .map(|(_, Position(pos))| *pos)
         .collect();
 
-    if !can_occupy(&util::shifted(&positions, IVec2::new(0, -1)), &board) {
+    if active_piece_state.lock_timer.is_finished()
+        && !can_occupy(&util::shifted(&positions, IVec2::new(0, -1)), &board)
+    {
         for (entity, Position(pos)) in &active_piece_query {
             board.set(*pos, entity);
             commands.entity(entity).remove::<ActivePiece>();
@@ -134,6 +211,7 @@ fn apply_gravity(
     time: Res<Time>,
     mut gravity_timer: ResMut<GravityTimer>,
     board: Res<Board>,
+    mut active_piece_state: ResMut<ActivePieceState>,
 ) {
     gravity_timer.0.tick(time.delta());
 
@@ -143,6 +221,134 @@ fn apply_gravity(
     {
         for mut position in query.iter_mut() {
             position.0.y -= 1;
+        }
+
+        active_piece_state.anchor.0.y -= 1;
+        active_piece_state.lock_timer.reset();
+    }
+}
+
+fn move_piece(
+    mut active_piece_query: Populated<&mut Position, With<ActivePiece>>,
+    mut active_piece_state: ResMut<ActivePieceState>,
+    mut reader: MessageReader<MovePiece>,
+    board: Res<Board>,
+) {
+    for movement in reader.read() {
+        let piece_positions: Vec<IVec2> = active_piece_query
+            .iter_mut()
+            .map(|position| position.0)
+            .collect();
+
+        match movement.0 {
+            Movement::Down => {
+                if can_occupy(&util::shifted(&piece_positions, ivec2(0, -1)), &board) {
+                    for mut position in &mut active_piece_query {
+                        position.0.y -= 1;
+                    }
+
+                    active_piece_state.anchor.0.y -= 1;
+                }
+            }
+            Movement::Right => {
+                if can_occupy(&util::shifted(&piece_positions, ivec2(1, 0)), &board) {
+                    for mut position in &mut active_piece_query {
+                        position.0.x += 1;
+                    }
+
+                    active_piece_state.lock_timer.reset();
+                    active_piece_state.anchor.0.x += 1;
+                }
+            }
+            Movement::Left => {
+                if can_occupy(&util::shifted(&piece_positions, ivec2(-1, 0)), &board) {
+                    for mut position in &mut active_piece_query {
+                        position.0.x -= 1;
+                    }
+
+                    active_piece_state.lock_timer.reset();
+                    active_piece_state.anchor.0.x -= 1;
+                }
+            }
+            Movement::HardDrop => {
+                let delta_y = get_bottom_legal_position(&piece_positions, &board);
+
+                for mut position in &mut active_piece_query.iter_mut() {
+                    position.0.y -= delta_y;
+                }
+
+                active_piece_state.anchor.0.y -= delta_y;
+                active_piece_state.lock_timer.finish();
+            }
+        }
+    }
+}
+
+fn rotate_piece(
+    mut active_piece_state: ResMut<ActivePieceState>,
+    mut active_piece_query: Populated<&mut Position, With<ActivePiece>>,
+    board: Res<Board>,
+    mut reader: MessageReader<RotatePiece>,
+) {
+    for _ in reader.read() {
+        let next_rotation_index = (active_piece_state.rotation + 1) % ROTATION_CYCLES;
+
+        let new_positions = util::shifted(
+            &active_piece_state.tetromino.shape().offsets[next_rotation_index],
+            active_piece_state.anchor.0,
+        );
+
+        if can_occupy(&new_positions, &board) {
+            active_piece_state.rotation = next_rotation_index;
+            for (index, mut position) in active_piece_query.iter_mut().enumerate() {
+                *position = Position(new_positions[index]);
+            }
+        }
+    }
+}
+
+fn animate_clearing_row(query: Populated<(&mut Sprite, &mut Clearing)>, time: Res<Time>) {
+    for (mut sprite, mut clearing) in query {
+        clearing.timer.tick(time.delta());
+
+        if !clearing.timer.is_finished() {
+            sprite.color.set_alpha(1.0 - clearing.timer.fraction());
+        }
+    }
+}
+
+fn delete_filled_row(mut commands: Commands, query: Populated<(Entity, &Clearing)>) {
+    for (entity, clearing) in query {
+        if clearing.timer.is_finished() {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+fn clear_filled_row(
+    mut commands: Commands,
+    mut board: ResMut<Board>,
+    mut reader: MessageReader<PieceLocked>,
+) {
+    for _ in reader.read() {
+        for row_index in 0..BOARD_HEIGHT {
+            let mut block_entities: Vec<(Entity, IVec2)> = Vec::with_capacity(BOARD_WIDTH);
+
+            for column_index in 0..BOARD_WIDTH {
+                let position = ivec2(column_index as i32, row_index as i32);
+                if let Some(entity) = board.get(position) {
+                    block_entities.push((entity, position));
+                }
+            }
+
+            if block_entities.len() == BOARD_WIDTH {
+                for (entity, position) in block_entities {
+                    commands.entity(entity).insert(Clearing {
+                        timer: Timer::from_seconds(0.3, TimerMode::Once),
+                    });
+                    board.remove(position);
+                }
+            }
         }
     }
 }

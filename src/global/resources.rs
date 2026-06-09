@@ -1,4 +1,7 @@
 use bevy::prelude::*;
 
-#[derive(Resource)]
-pub struct DebugMode;
+#[derive(Resource, Debug)]
+pub struct DebugConfig {
+    pub auto_start: bool,
+    pub gravity: bool,
+}
