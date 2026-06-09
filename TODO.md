@@ -2,47 +2,49 @@
 
 ## Phase 1: Core Mechanics
 - [x] Board grid & camera setup
-- [x] Spawn a piece (O-piece hardcoded)
+- [x] Spawn a piece
 - [x] Gravity (piece falls over time)
 - [x] Collision detection (floor + landed blocks)
 - [x] Lock piece on collision
-- [x] Left/right movement (keyboard input)
-- [x] Soft drop (hold down to fall faster)
-- [x] Hard drop (instant drop to bottom when pressing space)
-- [ ] Piece rotation (clockwise & counter-clockwise)
+- [x] Left/right movement (`A`/`D` or `←`/`→`)
+- [x] Soft drop (`S` or `↓`)
+- [x] Hard drop (`Space` — instant drop to bottom)
+- [x] Piece rotation clockwise (`W` or `↑`)
+- [ ] Piece rotation counter-clockwise (needs keybind, e.g. `Z` or `Q`)
 - [ ] Wall kick (adjust position when rotation is blocked by walls/blocks)
 - [x] Collision detection for lateral movement (prevent moving into walls/blocks)
 
 ## Phase 2: Piece System
-- [x] Define all 7 tetrominoes (I, O, T, S, Z, J, L) with their shapes and pivot points
+- [x] Define all 7 tetrominoes (I, O, T, S, Z, J, L) with shapes and rotations
 - [x] Random piece spawning (spawn a random piece when the previous one locks)
-- [ ] Piece preview (show the next piece)
+- [ ] Piece preview (show the next 1–3 pieces)
 - [ ] Piece bag (7-bag randomizer: shuffle all 7 pieces, deal them out, repeat)
-- [ ] Hold piece (swap current piece with held piece, once per drop)
+- [ ] Hold piece (swap current piece with held piece, once per drop; needs keybind, e.g. `C` or `Shift`)
 
 ## Phase 3: Line Clearing & Scoring
-- [ ] Detect full rows
-- [ ] Clear full rows (remove blocks, shift everything above down)
+- [x] Detect full rows
+- [x] Remove full rows from board
+- [x] Line clear animation (fade out + despawn after timer)
+- [ ] Shift rows down after clearing (update both Board data and block Positions)
 - [ ] Score system (points for singles, doubles, triples, tetrises)
 - [ ] Level system (level increases every N lines cleared)
-- [ ] Speed scaling (gravity gets faster as level increases)
+- [ ] Speed scaling (gravity interval decreases as level increases)
 - [ ] Combo tracking (consecutive line clears)
 
 ## Phase 4: Game State
-- [ ] Game over detection (new piece spawns overlapping existing blocks)
-- [ ] Game over screen
+- [x] Game over detection (piece spawns overlapping existing blocks → `GameState::Ended`)
+- [ ] Game over screen (display message, final score)
 - [ ] Start / title screen
-- [ ] Pause menu
-- [ ] Restart functionality
+- [ ] Pause menu (`Escape` or `P` to toggle `GameState::Paused`)
+- [ ] Restart functionality (reset board, score, and level)
 
 ## Phase 5: Aesthetics & Polish
-- [ ] Unique color per tetromino type
-- [ ] Board border / frame
-- [ ] Background (solid color or gradient)
-- [ ] Grid lines (subtle lines to show the cell boundaries)
+- [x] Unique color per tetromino type
+- [x] Board border / frame (dark rectangle behind the grid)
+- [x] Lock delay (brief pause before a piece locks, resets on lateral movement)
+- [ ] Background (solid color or gradient behind the board frame)
+- [ ] Grid lines (subtle lines to show cell boundaries)
 - [ ] Ghost piece (translucent preview of where the piece will land)
-- [ ] Lock delay (brief pause before a piece locks, allowing last-second moves)
-- [ ] Line clear animation (flash, dissolve, or slide)
 - [ ] Piece spawn animation (fade in)
 - [ ] Screen shake or flash on Tetris (4-line clear)
 - [ ] Particle effects on line clear
