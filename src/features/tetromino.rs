@@ -51,22 +51,42 @@ impl Tetromino {
                 ],
                 color: Color::srgb_u8(179, 77, 156), // Purple
             },
-            _ => todo!(), // Self::S => PieceShape {
-                          //     offsets: [ivec2(1, 0), ivec2(2, 0), ivec2(0, 1), ivec2(1, 1)],
-                          //     color: Color::srgb_u8(66, 182, 66), // Green
-                          // },
-                          // Self::Z => PieceShape {
-                          //     offsets: [ivec2(0, 0), ivec2(1, 0), ivec2(1, 1), ivec2(2, 1)],
-                          //     color: Color::srgb_u8(239, 32, 41), // Red
-                          // },
-                          // Self::J => PieceShape {
-                          //     offsets: [ivec2(0, 0), ivec2(0, 1), ivec2(1, 1), ivec2(2, 1)],
-                          //     color: Color::srgb_u8(90, 101, 173), // Blue
-                          // },
-                          // Self::L => PieceShape {
-                          //     offsets: [ivec2(2, 0), ivec2(0, 1), ivec2(1, 1), ivec2(2, 1)],
-                          //     color: Color::srgb_u8(239, 121, 33), // Orange
-                          // },
+            Self::S => PieceShape {
+                offsets: [
+                    [ivec2(0, 1), ivec2(1, 1), ivec2(1, 2), ivec2(2, 2)],
+                    [ivec2(2, 0), ivec2(1, 1), ivec2(2, 1), ivec2(1, 2)],
+                    [ivec2(0, 0), ivec2(1, 0), ivec2(1, 1), ivec2(2, 1)],
+                    [ivec2(1, 0), ivec2(0, 1), ivec2(1, 1), ivec2(0, 2)],
+                ],
+                color: Color::srgb_u8(66, 182, 66), // Green
+            },
+            Self::Z => PieceShape {
+                offsets: [
+                    [ivec2(1, 1), ivec2(2, 1), ivec2(0, 2), ivec2(1, 2)],
+                    [ivec2(1, 0), ivec2(1, 1), ivec2(2, 1), ivec2(2, 2)],
+                    [ivec2(1, 0), ivec2(2, 0), ivec2(0, 1), ivec2(1, 1)],
+                    [ivec2(0, 0), ivec2(0, 1), ivec2(1, 1), ivec2(1, 2)],
+                ],
+                color: Color::srgb_u8(239, 32, 41), // Red
+            },
+            Self::J => PieceShape {
+                offsets: [
+                    [ivec2(0, 1), ivec2(1, 1), ivec2(2, 1), ivec2(0, 2)],
+                    [ivec2(1, 0), ivec2(1, 1), ivec2(1, 2), ivec2(2, 2)],
+                    [ivec2(2, 0), ivec2(0, 1), ivec2(1, 1), ivec2(2, 1)],
+                    [ivec2(0, 0), ivec2(1, 0), ivec2(1, 1), ivec2(1, 2)],
+                ],
+                color: Color::srgb_u8(90, 101, 173), // Blue
+            },
+            Self::L => PieceShape {
+                offsets: [
+                    [ivec2(0, 1), ivec2(1, 1), ivec2(2, 1), ivec2(2, 2)],
+                    [ivec2(1, 0), ivec2(2, 0), ivec2(1, 1), ivec2(1, 2)],
+                    [ivec2(0, 0), ivec2(0, 1), ivec2(1, 1), ivec2(2, 1)],
+                    [ivec2(1, 0), ivec2(1, 1), ivec2(0, 2), ivec2(1, 2)],
+                ],
+                color: Color::srgb_u8(239, 121, 33), // Orange
+            },
         }
     }
 }
