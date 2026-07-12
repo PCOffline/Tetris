@@ -6,6 +6,7 @@ edition = "2024"
 [features]
 # Use `cargo run -F dev` during development for dynamic linking.
 # Never enable for release builds.
+default = ["dev"]
 dev = ["bevy/dynamic_linking"]
 
 [dependencies]

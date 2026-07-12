@@ -1,2 +1,16 @@
+# Use sccache as a compiler wrapper to cache rustc invocations across
+# profile/feature changes and even across projects.
+# Requires: `sudo apt-get install sccache` (or `cargo install sccache`).
+[build]
+rustc-wrapper = "sccache"
+
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld.exe"
+
+# ─── Linux (incl. WSL): use clang + mold for much faster linking ────
+# Requires: `sudo apt-get install mold clang`
+# Falls back suggestion: if mold is unavailable, replace
+# `-fuse-ld=/usr/bin/mold` with `-fuse-ld=lld` (and `apt-get install lld`).
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/mold"]
