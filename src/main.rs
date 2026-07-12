@@ -2,6 +2,7 @@ use bevy::{camera::ScalingMode, prelude::*};
 
 use crate::features::board::BoardPlugin;
 use crate::features::debug::{DebugMode, DebugPlugin};
+use crate::features::ghost::GhostPlugin;
 use crate::features::input::InputPlugin;
 use crate::features::piece::PiecePlugin;
 use crate::global::components::Position;
@@ -20,6 +21,7 @@ fn main() {
             PiecePlugin,
             BoardPlugin,
             InputPlugin,
+            GhostPlugin,
         ))
         .add_systems(Startup, (setup_camera, draw_borders))
         .add_systems(Update, sync_position_to_transform)

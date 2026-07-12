@@ -3,13 +3,14 @@ use bevy::prelude::*;
 use crate::{
     features::{
         board::Board,
-        tetromino::{TETROMINOES, Tetromino},
+        tetromino::{PieceShape, TETROMINOES, Tetromino},
     },
     global::{
         components::{ActivePiece, Block, Position},
         constants::*,
         messages::{MovePiece, Movement, RotatePiece},
         resources::DebugConfig,
+        sets::SpawnSet,
         states::GameState,
         util,
     },
@@ -19,7 +20,7 @@ use crate::{
 struct GravityTimer(Timer);
 
 #[derive(Resource)]
-struct ActivePieceState {
+pub struct ActivePieceState {
     tetromino: Tetromino,
     rotation: usize,
     anchor: Position,
@@ -37,11 +38,27 @@ impl Default for ActivePieceState {
     }
 }
 
+impl ActivePieceState {
+    pub fn shape(&self) -> PieceShape {
+        self.tetromino.shape()
+    }
+
+    pub fn positions(&self) -> Vec<IVec2> {
+        util::shifted(
+            &self.tetromino.shape().offsets[self.rotation],
+            self.anchor.0,
+        )
+    }
+}
+
 #[derive(Message)]
-struct PieceLocked;
+pub struct PieceLocked;
 
 #[derive(Message)]
 struct GameStarted;
+
+#[derive(Message)]
+pub struct PieceSpawned;
 
 #[derive(Component)]
 struct Clearing {
@@ -57,6 +74,7 @@ impl Plugin for PiecePlugin {
             .add_message::<GameStarted>()
             .add_message::<MovePiece>()
             .add_message::<RotatePiece>()
+            .add_message::<PieceSpawned>()
             .add_systems(
                 Update,
                 (
@@ -80,7 +98,9 @@ impl Plugin for PiecePlugin {
         if auto_start {
             app.add_systems(Startup, spawn_initial_piece).add_systems(
                 Update,
-                spawn_next_piece.run_if(in_state(GameState::Started)),
+                spawn_next_piece
+                    .in_set(SpawnSet)
+                    .run_if(in_state(GameState::Started)),
             );
         }
 
@@ -94,20 +114,17 @@ impl Plugin for PiecePlugin {
 }
 
 fn sync_active_piece_positions(
-    state: Res<ActivePieceState>,
+    active_piece_state: Res<ActivePieceState>,
     mut query: Query<&mut Position, With<ActivePiece>>,
 ) {
-    if !state.is_changed() {
+    if !active_piece_state.is_changed() {
         return;
     }
 
-    let target = util::shifted(
-        &state.tetromino.shape().offsets[state.rotation],
-        state.anchor.0,
-    );
+    let piece_positions = active_piece_state.positions();
 
-    for (i, mut pos) in query.iter_mut().enumerate() {
-        *pos = Position(target[i]);
+    for (mut position, target) in query.iter_mut().zip(piece_positions.iter()) {
+        *position = Position(*target);
     }
 }
 
@@ -142,13 +159,10 @@ pub fn spawn_piece(
     let piece = tetromino.shape();
 
     let mut positions = util::shifted(&piece.offsets[rotation], anchor);
-    let occupied = can_occupy(&positions, &board);
+    let occupied = can_occupy(&positions, board);
 
     if occupied {
-        positions = positions
-            .into_iter()
-            .filter(|pos| !board.is_occupied(pos))
-            .collect();
+        positions.retain(|pos| !board.is_occupied(pos));
     }
 
     for pos in positions.iter() {
@@ -172,6 +186,7 @@ fn spawn_next_piece(
     mut commands: Commands,
     mut piece_locked_reader: MessageReader<PieceLocked>,
     mut game_started_reader: MessageReader<GameStarted>,
+    mut piece_spawned_writer: MessageWriter<PieceSpawned>,
     board: Res<Board>,
 ) {
     for _ in piece_locked_reader
@@ -191,10 +206,12 @@ fn spawn_next_piece(
 
         commands.insert_resource(ActivePieceState {
             tetromino,
-            rotation: rotation,
+            rotation,
             anchor: Position(anchor),
             lock_timer: Timer::from_seconds(0.5, TimerMode::Once),
         });
+
+        piece_spawned_writer.write(PieceSpawned);
     }
 }
 
