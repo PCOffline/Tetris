@@ -125,7 +125,7 @@ fn sync_active_piece_positions(
     }
 }
 
-pub fn can_occupy(proposed: &[IVec2], board: &Board) -> bool {
+fn can_occupy(proposed: &[IVec2], board: &Board) -> bool {
     proposed.iter().all(|proposed_position| {
         board.in_bounds(proposed_position) && !board.is_occupied(proposed_position)
     })
