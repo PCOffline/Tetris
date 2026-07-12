@@ -62,6 +62,7 @@ impl Plugin for PiecePlugin {
                 (
                     move_piece,
                     rotate_piece,
+                    sync_active_piece_positions,
                     lock_active_piece_on_bottom_collision,
                     clear_filled_row,
                     animate_clearing_row,
@@ -89,6 +90,24 @@ impl Plugin for PiecePlugin {
                 apply_gravity.run_if(in_state(GameState::Started)),
             );
         }
+    }
+}
+
+fn sync_active_piece_positions(
+    state: Res<ActivePieceState>,
+    mut query: Query<&mut Position, With<ActivePiece>>,
+) {
+    if !state.is_changed() {
+        return;
+    }
+
+    let target = util::shifted(
+        &state.tetromino.shape().offsets[state.rotation],
+        state.anchor.0,
+    );
+
+    for (i, mut pos) in query.iter_mut().enumerate() {
+        *pos = Position(target[i]);
     }
 }
 
@@ -229,53 +248,39 @@ fn apply_gravity(
 }
 
 fn move_piece(
-    mut active_piece_query: Populated<&mut Position, With<ActivePiece>>,
+    active_piece_query: Populated<&mut Position, With<ActivePiece>>,
     mut active_piece_state: ResMut<ActivePieceState>,
     mut reader: MessageReader<MovePiece>,
     board: Res<Board>,
 ) {
-    for movement in reader.read() {
-        let piece_positions: Vec<IVec2> = active_piece_query
-            .iter()
-            .map(|position| position.0)
-            .collect();
+    let piece_positions: Vec<IVec2> = active_piece_query
+        .iter()
+        .map(|position| position.0)
+        .collect();
 
+    for movement in reader.read() {
         match movement.0 {
             Movement::Down => {
                 if can_occupy(&util::shifted(&piece_positions, ivec2(0, -1)), &board) {
-                    for mut position in &mut active_piece_query {
-                        position.0.y -= 1;
-                    }
-
                     active_piece_state.anchor.0.y -= 1;
+                } else {
+                    active_piece_state.lock_timer.finish();
                 }
             }
             Movement::Right => {
                 if can_occupy(&util::shifted(&piece_positions, ivec2(1, 0)), &board) {
-                    for mut position in &mut active_piece_query {
-                        position.0.x += 1;
-                    }
-
                     active_piece_state.lock_timer.reset();
                     active_piece_state.anchor.0.x += 1;
                 }
             }
             Movement::Left => {
                 if can_occupy(&util::shifted(&piece_positions, ivec2(-1, 0)), &board) {
-                    for mut position in &mut active_piece_query {
-                        position.0.x -= 1;
-                    }
-
                     active_piece_state.lock_timer.reset();
                     active_piece_state.anchor.0.x -= 1;
                 }
             }
             Movement::HardDrop => {
                 let delta_y = get_bottom_legal_position(&piece_positions, &board);
-
-                for mut position in &mut active_piece_query {
-                    position.0.y -= delta_y;
-                }
 
                 active_piece_state.anchor.0.y -= delta_y;
                 active_piece_state.lock_timer.finish();
@@ -286,7 +291,6 @@ fn move_piece(
 
 fn rotate_piece(
     mut active_piece_state: ResMut<ActivePieceState>,
-    mut active_piece_query: Populated<&mut Position, With<ActivePiece>>,
     board: Res<Board>,
     mut reader: MessageReader<RotatePiece>,
 ) {
@@ -300,9 +304,6 @@ fn rotate_piece(
 
         if can_occupy(&new_positions, &board) {
             active_piece_state.rotation = next_rotation_index;
-            for (index, mut position) in active_piece_query.iter_mut().enumerate() {
-                *position = Position(new_positions[index]);
-            }
         }
     }
 }
