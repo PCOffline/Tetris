@@ -48,7 +48,7 @@ fn update_ghost(
     let ghost_positions = get_ghost_positions(&active_piece_positions, &board);
 
     for (mut position, target) in ghosts.iter_mut().zip(ghost_positions.iter()) {
-        *position = Position(*target);
+        **position = *target;
     }
 }
 

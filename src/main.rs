@@ -57,7 +57,7 @@ fn draw_borders(
 }
 
 fn sync_position_to_transform(mut query: Query<(&Position, &mut Transform)>) {
-    for (Position(pos), mut transform) in query.iter_mut() {
-        transform.translation = util::translate_position_to_grid(*pos);
+    for (position, mut transform) in query.iter_mut() {
+        transform.translation = util::translate_position_to_grid(**position);
     }
 }

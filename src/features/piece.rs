@@ -32,7 +32,7 @@ impl Default for ActivePieceState {
         ActivePieceState {
             tetromino: Tetromino::I,
             rotation: 0,
-            anchor: Position(IVec2::splat(0)),
+            anchor: IVec2::ZERO.into(),
             lock_timer: Timer::from_seconds(0.5, TimerMode::Once),
         }
     }
@@ -44,10 +44,7 @@ impl ActivePieceState {
     }
 
     pub fn positions(&self) -> Vec<IVec2> {
-        util::shifted(
-            &self.tetromino.shape().offsets[self.rotation],
-            self.anchor.0,
-        )
+        util::shifted(&self.tetromino.shape().offsets[self.rotation], *self.anchor)
     }
 }
 
@@ -124,7 +121,7 @@ fn sync_active_piece_positions(
     let piece_positions = active_piece_state.positions();
 
     for (mut position, target) in query.iter_mut().zip(piece_positions.iter()) {
-        *position = Position(*target);
+        **position = *target;
     }
 }
 
@@ -207,7 +204,7 @@ fn spawn_next_piece(
         commands.insert_resource(ActivePieceState {
             tetromino,
             rotation,
-            anchor: Position(anchor),
+            anchor: anchor.into(),
             lock_timer: Timer::from_seconds(0.5, TimerMode::Once),
         });
 
@@ -225,16 +222,13 @@ fn lock_active_piece_on_bottom_collision(
 ) {
     active_piece_state.lock_timer.tick(time.delta());
 
-    let positions: Vec<IVec2> = active_piece_query
-        .iter()
-        .map(|(_, Position(pos))| *pos)
-        .collect();
+    let positions: Vec<IVec2> = active_piece_query.iter().map(|(_, pos)| **pos).collect();
 
     if active_piece_state.lock_timer.is_finished()
-        && !can_occupy(&util::shifted(&positions, IVec2::new(0, -1)), &board)
+        && !can_occupy(&util::shifted(&positions, IVec2::NEG_Y), &board)
     {
-        for (entity, Position(pos)) in &active_piece_query {
-            board.set(*pos, entity);
+        for (entity, position) in &active_piece_query {
+            board.set(**position, entity);
             commands.entity(entity).remove::<ActivePiece>();
         }
 
@@ -251,15 +245,15 @@ fn apply_gravity(
 ) {
     gravity_timer.0.tick(time.delta());
 
-    let positions: Vec<IVec2> = query.iter().map(|Position(piece)| *piece).collect();
+    let positions: Vec<IVec2> = query.iter().map(|position| **position).collect();
     if gravity_timer.0.just_finished()
-        && can_occupy(&util::shifted(&positions, ivec2(0, -1)), &board)
+        && can_occupy(&util::shifted(&positions, IVec2::NEG_Y), &board)
     {
         for mut position in query.iter_mut() {
-            position.0.y -= 1;
+            position.shift(IVec2::NEG_Y);
         }
 
-        active_piece_state.anchor.0.y -= 1;
+        active_piece_state.anchor.shift(IVec2::NEG_Y);
         active_piece_state.lock_timer.reset();
     }
 }
@@ -272,34 +266,34 @@ fn move_piece(
 ) {
     let piece_positions: Vec<IVec2> = active_piece_query
         .iter()
-        .map(|position| position.0)
+        .map(|position| **position)
         .collect();
 
     for movement in reader.read() {
         match movement.0 {
             Movement::Down => {
-                if can_occupy(&util::shifted(&piece_positions, ivec2(0, -1)), &board) {
-                    active_piece_state.anchor.0.y -= 1;
+                if can_occupy(&util::shifted(&piece_positions, IVec2::NEG_Y), &board) {
+                    active_piece_state.anchor.shift(IVec2::NEG_Y);
                 } else {
                     active_piece_state.lock_timer.finish();
                 }
             }
             Movement::Right => {
-                if can_occupy(&util::shifted(&piece_positions, ivec2(1, 0)), &board) {
+                if can_occupy(&util::shifted(&piece_positions, IVec2::X), &board) {
                     active_piece_state.lock_timer.reset();
-                    active_piece_state.anchor.0.x += 1;
+                    active_piece_state.anchor.shift(IVec2::X);
                 }
             }
             Movement::Left => {
-                if can_occupy(&util::shifted(&piece_positions, ivec2(-1, 0)), &board) {
+                if can_occupy(&util::shifted(&piece_positions, IVec2::NEG_X), &board) {
                     active_piece_state.lock_timer.reset();
-                    active_piece_state.anchor.0.x -= 1;
+                    active_piece_state.anchor.shift(IVec2::NEG_X);
                 }
             }
             Movement::HardDrop => {
                 let delta_y = get_bottom_legal_position(&piece_positions, &board);
 
-                active_piece_state.anchor.0.y -= delta_y;
+                active_piece_state.anchor.shift(ivec2(0, -delta_y));
                 active_piece_state.lock_timer.finish();
             }
         }
@@ -316,7 +310,7 @@ fn rotate_piece(
 
         let new_positions = util::shifted(
             &active_piece_state.tetromino.shape().offsets[next_rotation_index],
-            active_piece_state.anchor.0,
+            *active_piece_state.anchor,
         );
 
         if can_occupy(&new_positions, &board) {
