@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     features::{
         board::Board,
-        tetromino::{self, TETROMINOES, Tetromino},
+        tetromino::{TETROMINOES, Tetromino},
     },
     global::{
         components::{ActivePiece, Block, Position},
@@ -236,7 +236,7 @@ fn move_piece(
 ) {
     for movement in reader.read() {
         let piece_positions: Vec<IVec2> = active_piece_query
-            .iter_mut()
+            .iter()
             .map(|position| position.0)
             .collect();
 
@@ -273,7 +273,7 @@ fn move_piece(
             Movement::HardDrop => {
                 let delta_y = get_bottom_legal_position(&piece_positions, &board);
 
-                for mut position in &mut active_piece_query.iter_mut() {
+                for mut position in &mut active_piece_query {
                     position.0.y -= delta_y;
                 }
 

@@ -11,7 +11,10 @@ impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            move_piece_on_keyboard_input.run_if(in_state(GameState::Started)),
+            (
+                move_piece_on_keyboard_input.run_if(in_state(GameState::Started)),
+                game_menu_on_keyboard_input.run_if(not(in_state(GameState::Ended))),
+            ),
         );
     }
 }
@@ -41,5 +44,19 @@ fn move_piece_on_keyboard_input(
 
     if keyboard_input.just_pressed(KeyCode::KeyW) || keyboard_input.just_pressed(KeyCode::ArrowUp) {
         rotate_piece_writer.write(RotatePiece);
+    }
+}
+
+fn game_menu_on_keyboard_input(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    game_state: Res<State<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Escape) {
+        match **game_state {
+            GameState::Started => next_game_state.set(GameState::Paused),
+            GameState::Paused => next_game_state.set(GameState::Started),
+            _ => {}
+        };
     }
 }
