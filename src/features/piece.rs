@@ -10,7 +10,7 @@ use crate::{
         constants::*,
         messages::{MovePiece, Movement, RotatePiece},
         resources::DebugConfig,
-        sets::SpawnSet,
+        sets::{PieceMovementSet, SpawnSet},
         states::{GameState, IsPaused},
         util,
     },
@@ -75,8 +75,7 @@ impl Plugin for PiecePlugin {
             .add_systems(
                 Update,
                 (
-                    move_piece,
-                    rotate_piece,
+                    (move_piece, rotate_piece).in_set(PieceMovementSet),
                     sync_active_piece_positions,
                     lock_active_piece_on_bottom_collision,
                     clear_filled_row,

@@ -8,7 +8,7 @@ use crate::{
     global::{
         components::{ActivePiece, Position},
         constants::PADDING_SIZE,
-        sets::SpawnSet,
+        sets::{PieceMovementSet, SpawnSet},
         states::IsPaused,
         util,
     },
@@ -20,7 +20,11 @@ impl Plugin for GhostPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (despawn_ghost_pieces, update_ghost).run_if(in_state(IsPaused::Unpaused)),
+            (
+                despawn_ghost_pieces,
+                update_ghost.after(PieceMovementSet),
+            )
+                .run_if(in_state(IsPaused::Unpaused)),
         );
 
         app.add_systems(Update, spawn_ghost_pieces.after(SpawnSet));
