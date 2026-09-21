@@ -3,13 +3,13 @@ use bevy::prelude::*;
 use crate::{
     features::{
         board::Board,
-        piece::{ActivePieceState, PieceLocked, PieceSpawned, get_bottom_legal_position},
+        piece::{ActivePieceState, get_bottom_legal_position},
     },
     global::{
         components::{ActivePiece, Position},
         constants::PADDING_SIZE,
-        sets::{PieceMovementSet, SpawnSet},
-        states::IsPaused,
+        sets::PieceMovementSet,
+        states::PlayState,
         util,
     },
 };
@@ -18,16 +18,9 @@ pub struct GhostPlugin;
 
 impl Plugin for GhostPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (
-                despawn_ghost_pieces,
-                update_ghost.after(PieceMovementSet),
-            )
-                .run_if(in_state(IsPaused::Unpaused)),
-        );
-
-        app.add_systems(Update, spawn_ghost_pieces.after(SpawnSet));
+        app.add_systems(Update, update_ghost.after(PieceMovementSet))
+            .add_systems(OnExit(PlayState::Falling), despawn_ghost_pieces)
+            .add_systems(OnEnter(PlayState::Falling), spawn_ghost_pieces);
     }
 }
 
@@ -60,34 +53,25 @@ fn spawn_ghost_pieces(
     mut commands: Commands,
     active_piece_state: Res<ActivePieceState>,
     board: Res<Board>,
-    mut piece_spawned_reader: MessageReader<PieceSpawned>,
 ) {
-    for _ in piece_spawned_reader.read() {
-        let block_size = Vec2::splat(1.0 - PADDING_SIZE);
-        let ghost_positions = get_ghost_positions(&active_piece_state.positions(), &board);
+    let block_size = Vec2::splat(1.0 - PADDING_SIZE);
+    let ghost_positions = get_ghost_positions(&active_piece_state.positions(), &board);
 
-        for pos in ghost_positions.iter() {
-            commands.spawn((
-                GhostBlock,
-                Transform::from_translation(util::translate_position_to_grid(*pos)),
-                Position(*pos),
-                Sprite::from_color(
-                    active_piece_state.shape().color.with_alpha(0.15),
-                    block_size,
-                ),
-            ));
-        }
+    for pos in ghost_positions.iter() {
+        commands.spawn((
+            GhostBlock,
+            Transform::from_translation(util::translate_position_to_grid(*pos)),
+            Position(*pos),
+            Sprite::from_color(
+                active_piece_state.shape().color.with_alpha(0.15),
+                block_size,
+            ),
+        ));
     }
 }
 
-fn despawn_ghost_pieces(
-    mut piece_locked_reader: MessageReader<PieceLocked>,
-    ghost_pieces: Query<Entity, With<GhostBlock>>,
-    mut commands: Commands,
-) {
-    for _ in piece_locked_reader.read() {
-        for entity in ghost_pieces.iter() {
-            commands.entity(entity).despawn();
-        }
+fn despawn_ghost_pieces(ghost_pieces: Query<Entity, With<GhostBlock>>, mut commands: Commands) {
+    for entity in ghost_pieces.iter() {
+        commands.entity(entity).despawn();
     }
 }

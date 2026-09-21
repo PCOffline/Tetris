@@ -10,8 +10,8 @@ use crate::{
         constants::*,
         messages::{MovePiece, Movement, RotatePiece},
         resources::DebugConfig,
-        sets::{PieceMovementSet, SpawnSet},
-        states::{GameState, IsPaused},
+        sets::PieceMovementSet,
+        states::{GameState, IsPaused, PlayState},
         util,
     },
 };
@@ -51,12 +51,6 @@ impl ActivePieceState {
 #[derive(Message)]
 pub struct PieceLocked;
 
-#[derive(Message)]
-struct GameStarted;
-
-#[derive(Message)]
-pub struct PieceSpawned;
-
 #[derive(Component)]
 struct Clearing {
     timer: Timer,
@@ -68,42 +62,37 @@ impl Plugin for PiecePlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<PieceLocked>()
             .insert_resource(GravityTimer(Timer::from_seconds(0.5, TimerMode::Repeating)))
-            .add_message::<GameStarted>()
             .add_message::<MovePiece>()
             .add_message::<RotatePiece>()
-            .add_message::<PieceSpawned>()
             .add_systems(
                 Update,
                 (
-                    (move_piece, rotate_piece).in_set(PieceMovementSet),
+                    (
+                        (move_piece, rotate_piece).in_set(PieceMovementSet),
+                        lock_active_piece_on_bottom_collision,
+                        clear_filled_row,
+                        animate_clearing_row,
+                        delete_filled_row,
+                    )
+                        .chain()
+                        .run_if(in_state(PlayState::Falling)),
                     sync_active_piece_positions,
-                    lock_active_piece_on_bottom_collision,
-                    clear_filled_row,
-                    animate_clearing_row,
-                    delete_filled_row,
                 )
-                    .run_if(in_state(IsPaused::Unpaused))
-                    .chain(),
+                    .run_if(in_state(IsPaused::Unpaused)),
             )
+            .add_systems(OnEnter(PlayState::Spawning), spawn_next_piece)
             .insert_resource(ActivePieceState::default());
 
         let debug_config = app.world().get_resource::<DebugConfig>();
         let gravity = debug_config.is_none_or(|config| config.gravity);
-        let auto_start = debug_config.is_none_or(|config| config.auto_start);
-
-        if auto_start {
-            app.add_systems(Startup, spawn_initial_piece).add_systems(
-                Update,
-                spawn_next_piece
-                    .in_set(SpawnSet)
-                    .run_if(in_state(IsPaused::Unpaused)),
-            );
-        }
+        // let auto_start = debug_config.is_none_or(|config| config.auto_start);
 
         if gravity {
             app.add_systems(
                 FixedUpdate,
-                apply_gravity.run_if(in_state(IsPaused::Unpaused)),
+                apply_gravity
+                    .run_if(in_state(PlayState::Falling))
+                    .run_if(in_state(IsPaused::Unpaused)),
             );
         }
     }
@@ -174,41 +163,31 @@ pub fn spawn_piece(
     is_available_to_occupy
 }
 
-fn spawn_initial_piece(mut writer: MessageWriter<GameStarted>) {
-    writer.write(GameStarted);
-}
-
 fn spawn_next_piece(
     mut commands: Commands,
-    mut piece_locked_reader: MessageReader<PieceLocked>,
-    mut game_started_reader: MessageReader<GameStarted>,
-    mut piece_spawned_writer: MessageWriter<PieceSpawned>,
+    mut play_state: ResMut<NextState<PlayState>>,
+    mut game_state: ResMut<NextState<GameState>>,
     board: Res<Board>,
 ) {
-    for _ in piece_locked_reader
-        .read()
-        .map(|_| ())
-        .chain(game_started_reader.read().map(|_| ()))
-    {
-        let random = rand::random::<u8>() % 7;
-        let tetromino = TETROMINOES.get(random as usize).expect("Random should always be moduloed by the length of the Tetromino enum, so never should be an invalid integer").to_owned();
-        // TODO: Make them spawn so that it always touches the top? Or above the board?
-        let anchor = ivec2(4, 16);
-        let rotation = 0;
+    log::info!("Spawning piece.");
+    let random = rand::random::<u8>() % 7;
+    let tetromino = TETROMINOES.get(random as usize).expect("Random should always be moduloed by the length of the Tetromino enum, so never should be an invalid integer").to_owned();
+    // TODO: Make them spawn so that it always touches the top? Or above the board?
+    let anchor = ivec2(4, 16);
+    let rotation = 0;
 
-        if !spawn_piece(&mut commands, tetromino, anchor, rotation, &board) {
-            commands.set_state(GameState::Ended);
-        }
-
-        commands.insert_resource(ActivePieceState {
-            tetromino,
-            rotation,
-            anchor: anchor.into(),
-            lock_timer: Timer::from_seconds(0.5, TimerMode::Once),
-        });
-
-        piece_spawned_writer.write(PieceSpawned);
+    if !spawn_piece(&mut commands, tetromino, anchor, rotation, &board) {
+        game_state.set(GameState::Ended);
+    } else {
+        play_state.set(PlayState::Falling);
     }
+
+    commands.insert_resource(ActivePieceState {
+        tetromino,
+        rotation,
+        anchor: anchor.into(),
+        lock_timer: Timer::from_seconds(0.5, TimerMode::Once),
+    });
 }
 
 fn lock_active_piece_on_bottom_collision(
@@ -217,6 +196,7 @@ fn lock_active_piece_on_bottom_collision(
     mut active_piece_state: ResMut<ActivePieceState>,
     mut board: ResMut<Board>,
     mut piece_locked_message: MessageWriter<PieceLocked>,
+    mut play_state: ResMut<NextState<PlayState>>,
     time: Res<Time>,
 ) {
     active_piece_state.lock_timer.tick(time.delta());
@@ -232,6 +212,7 @@ fn lock_active_piece_on_bottom_collision(
         }
 
         piece_locked_message.write(PieceLocked);
+        play_state.set(PlayState::Spawning);
     }
 }
 

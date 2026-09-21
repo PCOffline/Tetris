@@ -9,6 +9,15 @@ pub enum GameState {
 
 #[derive(SubStates, Clone, PartialEq, Eq, Hash, Debug, Default)]
 #[source(GameState = GameState::Playing)]
+pub enum PlayState {
+    Falling,
+    Clearing,
+    #[default]
+    Spawning,
+}
+
+#[derive(SubStates, Clone, PartialEq, Eq, Hash, Debug, Default)]
+#[source(GameState = GameState::Playing)]
 pub enum IsPaused {
     Paused,
     #[default]
