@@ -70,12 +70,13 @@ impl Plugin for PiecePlugin {
                     (
                         (move_piece, rotate_piece).in_set(PieceMovementSet),
                         lock_active_piece_on_bottom_collision,
-                        clear_filled_row,
-                        animate_clearing_row,
-                        delete_filled_row,
+                        mark_filled_row_for_clearing,
                     )
                         .chain()
                         .run_if(in_state(PlayState::Falling)),
+                    (animate_clearing_row, delete_filled_row)
+                        .chain()
+                        .run_if(in_state(PlayState::Clearing)),
                     sync_active_piece_positions,
                 )
                     .run_if(in_state(IsPaused::Unpaused)),
@@ -309,20 +310,34 @@ fn animate_clearing_row(query: Populated<(&mut Sprite, &mut Clearing)>, time: Re
     }
 }
 
-fn delete_filled_row(mut commands: Commands, query: Populated<(Entity, &Clearing)>) {
-    for (entity, clearing) in query {
+fn delete_filled_row(
+    mut commands: Commands,
+    query: Populated<(Entity, &Clearing)>,
+    mut play_state: ResMut<NextState<PlayState>>,
+) {
+    for (entity, clearing) in &query {
         if clearing.timer.is_finished() {
             commands.entity(entity).despawn();
         }
     }
+
+    if query
+        .iter()
+        .all(|(_, clearing)| clearing.timer.is_finished())
+    {
+        play_state.set(PlayState::Spawning);
+    }
 }
 
-fn clear_filled_row(
+fn mark_filled_row_for_clearing(
     mut commands: Commands,
     mut board: ResMut<Board>,
     mut reader: MessageReader<PieceLocked>,
+    mut play_state: ResMut<NextState<PlayState>>,
 ) {
     for _ in reader.read() {
+        let mut row_cleared = false;
+
         for row_index in 0..BOARD_HEIGHT {
             let mut block_entities: Vec<(Entity, IVec2)> = Vec::with_capacity(BOARD_WIDTH);
 
@@ -334,6 +349,7 @@ fn clear_filled_row(
             }
 
             if block_entities.len() == BOARD_WIDTH {
+                row_cleared = true;
                 for (entity, position) in block_entities {
                     commands.entity(entity).insert(Clearing {
                         timer: Timer::from_seconds(0.3, TimerMode::Once),
@@ -341,6 +357,10 @@ fn clear_filled_row(
                     board.remove(position);
                 }
             }
+        }
+
+        if row_cleared {
+            play_state.set(PlayState::Clearing);
         }
     }
 }
