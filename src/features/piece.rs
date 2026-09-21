@@ -156,9 +156,9 @@ pub fn spawn_piece(
     let piece = tetromino.shape();
 
     let mut positions = util::shifted(&piece.offsets[rotation], anchor);
-    let occupied = can_occupy(&positions, board);
+    let is_available_to_occupy = can_occupy(&positions, board);
 
-    if occupied {
+    if is_available_to_occupy {
         positions.retain(|pos| !board.is_occupied(pos));
     }
 
@@ -172,7 +172,7 @@ pub fn spawn_piece(
         ));
     }
 
-    occupied
+    is_available_to_occupy
 }
 
 fn spawn_initial_piece(mut writer: MessageWriter<GameStarted>) {
