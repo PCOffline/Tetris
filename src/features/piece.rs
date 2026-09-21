@@ -312,18 +312,40 @@ fn animate_clearing_row(query: Populated<(&mut Sprite, &mut Clearing)>, time: Re
 
 fn delete_filled_row(
     mut commands: Commands,
-    query: Populated<(Entity, &Clearing)>,
+    clearing_query: Populated<(Entity, &Clearing, &Position)>,
+    not_clearing_query: Query<(Entity, &mut Position), (With<Block>, Without<Clearing>)>,
+    mut board: ResMut<Board>,
     mut play_state: ResMut<NextState<PlayState>>,
 ) {
-    for (entity, clearing) in &query {
+    let mut row_indexes: Vec<i32> = Vec::with_capacity(4);
+
+    for (entity, clearing, position) in &clearing_query {
         if clearing.timer.is_finished() {
             commands.entity(entity).despawn();
+            board.remove(position.0);
+
+            if !row_indexes.contains(&position.y) {
+                row_indexes.push(position.y);
+            }
         }
     }
 
-    if query
+    for (entity, mut position) in not_clearing_query {
+        let shift_count = row_indexes
+            .iter()
+            .filter(|row_index| **row_index < position.y)
+            .count() as i32;
+
+        if shift_count > 0 {
+            board.remove(position.0);
+            position.y -= shift_count;
+            board.set(position.0, entity);
+        }
+    }
+
+    if clearing_query
         .iter()
-        .all(|(_, clearing)| clearing.timer.is_finished())
+        .all(|(_, clearing, _)| clearing.timer.is_finished())
     {
         play_state.set(PlayState::Spawning);
     }
@@ -331,7 +353,7 @@ fn delete_filled_row(
 
 fn mark_filled_row_for_clearing(
     mut commands: Commands,
-    mut board: ResMut<Board>,
+    board: Res<Board>,
     mut reader: MessageReader<PieceLocked>,
     mut play_state: ResMut<NextState<PlayState>>,
 ) {
@@ -339,22 +361,21 @@ fn mark_filled_row_for_clearing(
         let mut row_cleared = false;
 
         for row_index in 0..BOARD_HEIGHT {
-            let mut block_entities: Vec<(Entity, IVec2)> = Vec::with_capacity(BOARD_WIDTH);
+            let mut block_entities: Vec<Entity> = Vec::with_capacity(BOARD_WIDTH);
 
             for column_index in 0..BOARD_WIDTH {
                 let position = ivec2(column_index as i32, row_index as i32);
                 if let Some(entity) = board.get(position) {
-                    block_entities.push((entity, position));
+                    block_entities.push(entity);
                 }
             }
 
             if block_entities.len() == BOARD_WIDTH {
                 row_cleared = true;
-                for (entity, position) in block_entities {
+                for entity in block_entities {
                     commands.entity(entity).insert(Clearing {
                         timer: Timer::from_seconds(0.3, TimerMode::Once),
                     });
-                    board.remove(position);
                 }
             }
         }
