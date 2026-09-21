@@ -72,3 +72,48 @@
 - [ ] DAS (Delayed Auto Shift) for smooth left/right holding
 - [ ] Configurable settings (starting level, grid size)
 - [ ] Back-to-back bonus (consecutive Tetrises / T-spins)
+
+## Phase 9: Refactors
+- [x] Spawn the next piece from `OnEnter(PlayState::Spawning)` instead of a message
+- [x] Remove `GameStarted`, `spawn_initial_piece` and `ClearingFinished`
+- [x] Gate systems per `PlayState` phase
+- [x] Only leave `Clearing` once every clearing timer has finished
+- [x] Don't set `PlayState::Falling` after a game over
+- [x] Change state through `NextState` everywhere
+- [x] Rename `GameState::Started` to `Playing`
+- [x] Move pause out of `GameState` into its own sub-state (`IsPaused`)
+- [x] Gate the pause-sensitive systems on `IsPaused::Unpaused`
+- [x] Remove cleared blocks from the `Board`
+- [x] Delete `SpawnSet`
+- [x] Register the states in `main.rs` instead of `PiecePlugin`
+- [ ] Piece never spawns if the game is paused while entering `Spawning`
+- [ ] Gate `toggle_pause_on_keyboard_input` on `Playing`
+- [ ] Fix the `retain` in `spawn_piece`
+- [ ] Make row shifting independent of query iteration order
+- [ ] One owner for the state change after a piece locks
+- [ ] Fix the ordering of `sync_active_piece_positions` and `update_ghost`
+- [ ] Separate the lock timer from `ActivePieceState`
+- [x] Tear down ghost pieces on `OnExit(PlayState::Falling)` instead of on `PieceLocked`
+- [ ] Represent "no active piece" properly instead of the dummy `ActivePieceState::default()`
+- [ ] Choose the initial `GameState` from the debug config and wire up `auto_start` and `Menu`
+- [ ] Stop reading `DebugConfig` at plugin build time
+- [ ] Split `piece.rs` into spawn, active piece, lock and clearing modules
+
+## Phase 10: Concepts to Learn
+- [x] Gating systems with `run_if(in_state(..))`
+- [x] `OnEnter` for one-shot setup such as spawning
+- [x] A sub-state only exists while its source state matches
+- [x] One enum holds one fact; independent facts belong in separate sub-states
+- [x] System ordering only applies within one schedule
+- [ ] `OnEnter` / `OnExit` only fire once per state change
+- [ ] Pending state requests still resolve while paused
+- [ ] Reading the state of a sub-state that doesn't exist
+- [ ] Pausing `Time<Virtual>`
+- [ ] `NextState::set` is a request applied in `StateTransition`, hence one frame in `Spawning`
+- [ ] `Commands` are deferred
+- [ ] `NextState` is last-write-wins
+- [ ] Messages vs states
+- [ ] Systems with conflicting access and no ordering run in arbitrary order
+- [ ] Change detection and `ResMut`
+- [ ] Query iteration order isn't guaranteed
+- [ ] Reading config at plugin build time makes plugin order matter
