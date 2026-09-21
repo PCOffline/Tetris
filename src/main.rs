@@ -7,7 +7,7 @@ use crate::features::input::InputPlugin;
 use crate::features::piece::PiecePlugin;
 use crate::global::components::Position;
 use crate::global::constants::{BOARD_HEIGHT, BOARD_WIDTH};
-use crate::global::states::GameState;
+use crate::global::states::{GameState, IsPaused};
 use crate::global::util;
 
 mod features;
@@ -25,7 +25,8 @@ fn main() {
         ))
         .add_systems(Startup, (setup_camera, draw_borders))
         .add_systems(Update, sync_position_to_transform)
-        .insert_state(GameState::Started)
+        .insert_state(GameState::Playing)
+        .add_sub_state::<IsPaused>()
         .run();
 }
 

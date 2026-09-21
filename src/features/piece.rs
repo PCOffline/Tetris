@@ -11,7 +11,7 @@ use crate::{
         messages::{MovePiece, Movement, RotatePiece},
         resources::DebugConfig,
         sets::SpawnSet,
-        states::GameState,
+        states::{GameState, IsPaused},
         util,
     },
 };
@@ -83,7 +83,7 @@ impl Plugin for PiecePlugin {
                     animate_clearing_row,
                     delete_filled_row,
                 )
-                    .run_if(in_state(GameState::Started))
+                    .run_if(in_state(IsPaused::Unpaused))
                     .chain(),
             )
             .insert_resource(ActivePieceState::default());
@@ -97,14 +97,14 @@ impl Plugin for PiecePlugin {
                 Update,
                 spawn_next_piece
                     .in_set(SpawnSet)
-                    .run_if(in_state(GameState::Started)),
+                    .run_if(in_state(IsPaused::Unpaused)),
             );
         }
 
         if gravity {
             app.add_systems(
                 FixedUpdate,
-                apply_gravity.run_if(in_state(GameState::Started)),
+                apply_gravity.run_if(in_state(IsPaused::Unpaused)),
             );
         }
     }

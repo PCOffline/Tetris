@@ -2,7 +2,15 @@ use bevy::prelude::*;
 
 #[derive(States, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameState {
-    Started,
-    Paused,
+    Playing,
+    Menu,
     Ended,
+}
+
+#[derive(SubStates, Clone, PartialEq, Eq, Hash, Debug, Default)]
+#[source(GameState = GameState::Playing)]
+pub enum IsPaused {
+    Paused,
+    #[default]
+    Unpaused,
 }

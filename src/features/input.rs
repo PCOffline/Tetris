@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::global::{
     messages::{MovePiece, Movement, RotatePiece},
-    states::GameState,
+    states::{GameState, IsPaused},
 };
 
 pub struct InputPlugin;
@@ -12,8 +12,8 @@ impl Plugin for InputPlugin {
         app.add_systems(
             Update,
             (
-                move_piece_on_keyboard_input.run_if(in_state(GameState::Started)),
-                game_menu_on_keyboard_input.run_if(not(in_state(GameState::Ended))),
+                move_piece_on_keyboard_input.run_if(in_state(IsPaused::Unpaused)),
+                toggle_pause_on_keyboard_input.run_if(not(in_state(GameState::Ended))),
             ),
         );
     }
@@ -47,16 +47,15 @@ fn move_piece_on_keyboard_input(
     }
 }
 
-fn game_menu_on_keyboard_input(
+fn toggle_pause_on_keyboard_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    game_state: Res<State<GameState>>,
-    mut next_game_state: ResMut<NextState<GameState>>,
+    paused_state: Res<State<IsPaused>>,
+    mut next_paused_state: ResMut<NextState<IsPaused>>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Escape) {
-        match **game_state {
-            GameState::Started => next_game_state.set(GameState::Paused),
-            GameState::Paused => next_game_state.set(GameState::Started),
-            _ => {}
+        match **paused_state {
+            IsPaused::Paused => next_paused_state.set(IsPaused::Unpaused),
+            IsPaused::Unpaused => next_paused_state.set(IsPaused::Paused),
         };
     }
 }
