@@ -193,7 +193,7 @@ fn spawn_next_piece(
 
 fn lock_active_piece_on_bottom_collision(
     mut commands: Commands,
-    active_piece_query: Populated<(Entity, &Position), With<ActivePiece>>,
+    active_piece_query: Populated<Entity, With<ActivePiece>>,
     mut active_piece_state: ResMut<ActivePieceState>,
     mut board: ResMut<Board>,
     mut piece_locked_message: MessageWriter<PieceLocked>,
@@ -202,13 +202,13 @@ fn lock_active_piece_on_bottom_collision(
 ) {
     active_piece_state.lock_timer.tick(time.delta());
 
-    let positions: Vec<IVec2> = active_piece_query.iter().map(|(_, pos)| **pos).collect();
+    let piece_positions: Vec<IVec2> = active_piece_state.positions();
 
     if active_piece_state.lock_timer.is_finished()
-        && !can_occupy(&util::shifted(&positions, IVec2::NEG_Y), &board)
+        && !can_occupy(&util::shifted(&piece_positions, IVec2::NEG_Y), &board)
     {
-        for (entity, position) in &active_piece_query {
-            board.set(**position, entity);
+        for (entity, position) in active_piece_query.iter().zip(piece_positions.iter()) {
+            board.set(*position, entity);
             commands.entity(entity).remove::<ActivePiece>();
         }
 
@@ -240,17 +240,13 @@ fn apply_gravity(
 }
 
 fn move_piece(
-    active_piece_query: Populated<&mut Position, With<ActivePiece>>,
     mut active_piece_state: ResMut<ActivePieceState>,
     mut reader: MessageReader<MovePiece>,
     board: Res<Board>,
 ) {
-    let piece_positions: Vec<IVec2> = active_piece_query
-        .iter()
-        .map(|position| **position)
-        .collect();
-
     for movement in reader.read() {
+        let piece_positions = active_piece_state.positions();
+
         match movement.0 {
             Movement::Down => {
                 if can_occupy(&util::shifted(&piece_positions, IVec2::NEG_Y), &board) {
@@ -339,7 +335,6 @@ fn delete_filled_row(
         if shift_count > 0 {
             board.remove(position.0);
             position.y -= shift_count;
-            board.set(position.0, entity);
         }
     });
 

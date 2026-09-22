@@ -91,17 +91,12 @@
 - [ ] Log when a block's `Position` and the `Board` disagree
 - [x] Fix pieces merging into locked blocks on lock
 - [x] Make row shifting independent of query iteration order
-- [ ] Validate moves and rotations against `ActivePieceState` instead of `Position`
-- [ ] Fix the ordering of `sync_active_piece_positions` relative to movement and lock
+- [x] Validate moves and rotations against `ActivePieceState` instead of `Position`
+- [x] Fix the ordering of `sync_active_piece_positions` relative to movement and lock
 - [ ] Separate the lock timer from `ActivePieceState`
 - [ ] One owner for the state change after a piece locks
 - [ ] Gate `toggle_pause_on_keyboard_input` on `Playing`
 - [ ] Fix the `retain` in `spawn_piece`
-- [ ] Make row shifting independent of query iteration order
-- [ ] One owner for the state change after a piece locks
-- [ ] Fix the ordering of `sync_active_piece_positions` and `update_ghost`
-- [ ] Separate the lock timer from `ActivePieceState`
-- [x] Tear down ghost pieces on `OnExit(PlayState::Falling)` instead of on `PieceLocked`
 - [ ] Represent "no active piece" properly instead of the dummy `ActivePieceState::default()`
 - [ ] Choose the initial `GameState` from the debug config and wire up `auto_start` and `Menu`
 - [ ] Stop reading `DebugConfig` at plugin build time
