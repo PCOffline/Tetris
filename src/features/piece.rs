@@ -313,7 +313,7 @@ fn animate_clearing_row(query: Populated<(&mut Sprite, &mut Clearing)>, time: Re
 fn delete_filled_row(
     mut commands: Commands,
     clearing_query: Populated<(Entity, &Clearing, &Position)>,
-    not_clearing_query: Query<(Entity, &mut Position), (With<Block>, Without<Clearing>)>,
+    mut not_clearing_query: Query<(Entity, &mut Position), (With<Block>, Without<Clearing>)>,
     mut board: ResMut<Board>,
     mut play_state: ResMut<NextState<PlayState>>,
 ) {
@@ -330,7 +330,7 @@ fn delete_filled_row(
         }
     }
 
-    for (entity, mut position) in not_clearing_query {
+    not_clearing_query.iter_mut().for_each(|(_, mut position)| {
         let shift_count = row_indexes
             .iter()
             .filter(|row_index| **row_index < position.y)
@@ -341,7 +341,11 @@ fn delete_filled_row(
             position.y -= shift_count;
             board.set(position.0, entity);
         }
-    }
+    });
+
+    not_clearing_query.iter().for_each(|(entity, position)| {
+        board.set(position.0, entity);
+    });
 
     if clearing_query
         .iter()

@@ -86,7 +86,15 @@
 - [x] Remove cleared blocks from the `Board`
 - [x] Delete `SpawnSet`
 - [x] Register the states in `main.rs` instead of `PiecePlugin`
-- [ ] Piece never spawns if the game is paused while entering `Spawning`
+- [x] Tear down ghost pieces on `OnExit(PlayState::Falling)` instead of on `PieceLocked`
+- [x] Spawn the next piece even if the game is paused while entering `Spawning`
+- [ ] Log when a block's `Position` and the `Board` disagree
+- [x] Fix pieces merging into locked blocks on lock
+- [x] Make row shifting independent of query iteration order
+- [ ] Validate moves and rotations against `ActivePieceState` instead of `Position`
+- [ ] Fix the ordering of `sync_active_piece_positions` relative to movement and lock
+- [ ] Separate the lock timer from `ActivePieceState`
+- [ ] One owner for the state change after a piece locks
 - [ ] Gate `toggle_pause_on_keyboard_input` on `Playing`
 - [ ] Fix the `retain` in `spawn_piece`
 - [ ] Make row shifting independent of query iteration order
@@ -115,5 +123,6 @@
 - [ ] Messages vs states
 - [ ] Systems with conflicting access and no ordering run in arbitrary order
 - [ ] Change detection and `ResMut`
-- [ ] Query iteration order isn't guaranteed
+- [x] Query iteration order isn't guaranteed
+- [x] One writer per fact: `Board`, `Position` and `ActivePieceState` can drift apart
 - [ ] Reading config at plugin build time makes plugin order matter
