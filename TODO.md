@@ -96,7 +96,7 @@
 - [ ] Separate the lock timer from `ActivePieceState`
 - [ ] One owner for the state change after a piece locks
 - [ ] Gate `toggle_pause_on_keyboard_input` on `Playing`
-- [ ] Fix the `retain` in `spawn_piece`
+- [x] Fix the `retain` in `spawn_piece`
 - [ ] Represent "no active piece" properly instead of the dummy `ActivePieceState::default()`
 - [ ] Choose the initial `GameState` from the debug config and wire up `auto_start` and `Menu`
 - [ ] Stop reading `DebugConfig` at plugin build time

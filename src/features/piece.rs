@@ -147,10 +147,6 @@ pub fn spawn_piece(
     let mut positions = util::shifted(&piece.offsets[rotation], anchor);
     let is_available_to_occupy = can_occupy(&positions, board);
 
-    if is_available_to_occupy {
-        positions.retain(|pos| !board.is_occupied(pos));
-    }
-
     for pos in positions.iter() {
         commands.spawn((
             Block,
