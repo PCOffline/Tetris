@@ -144,7 +144,7 @@ pub fn spawn_piece(
     let block_size = Vec2::splat(1.0 - PADDING_SIZE);
     let piece = tetromino.shape();
 
-    let mut positions = util::shifted(&piece.offsets[rotation], anchor);
+    let positions = util::shifted(&piece.offsets[rotation], anchor);
     let is_available_to_occupy = can_occupy(&positions, board);
 
     for pos in positions.iter() {
