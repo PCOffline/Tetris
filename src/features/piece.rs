@@ -20,11 +20,13 @@ use crate::{
 struct GravityTimer(Timer);
 
 #[derive(Resource)]
+struct LockTimer(Timer);
+
+#[derive(Resource)]
 pub struct ActivePieceState {
     tetromino: Tetromino,
     rotation: usize,
     anchor: Position,
-    lock_timer: Timer,
 }
 
 impl Default for ActivePieceState {
@@ -33,7 +35,6 @@ impl Default for ActivePieceState {
             tetromino: Tetromino::I,
             rotation: 0,
             anchor: IVec2::ZERO.into(),
-            lock_timer: Timer::from_seconds(0.5, TimerMode::Once),
         }
     }
 }
@@ -62,6 +63,7 @@ impl Plugin for PiecePlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<PieceLocked>()
             .insert_resource(GravityTimer(Timer::from_seconds(0.5, TimerMode::Repeating)))
+            .insert_resource(LockTimer(Timer::from_seconds(0.5, TimerMode::Once)))
             .add_message::<MovePiece>()
             .add_message::<RotatePiece>()
             .add_systems(
@@ -183,24 +185,24 @@ fn spawn_next_piece(
         tetromino,
         rotation,
         anchor: anchor.into(),
-        lock_timer: Timer::from_seconds(0.5, TimerMode::Once),
     });
 }
 
 fn lock_active_piece_on_bottom_collision(
     mut commands: Commands,
     active_piece_query: Populated<Entity, With<ActivePiece>>,
-    mut active_piece_state: ResMut<ActivePieceState>,
+    active_piece_state: ResMut<ActivePieceState>,
     mut board: ResMut<Board>,
     mut piece_locked_message: MessageWriter<PieceLocked>,
     mut play_state: ResMut<NextState<PlayState>>,
     time: Res<Time>,
+    mut lock_timer: ResMut<LockTimer>,
 ) {
-    active_piece_state.lock_timer.tick(time.delta());
+    lock_timer.0.tick(time.delta());
 
     let piece_positions: Vec<IVec2> = active_piece_state.positions();
 
-    if active_piece_state.lock_timer.is_finished()
+    if lock_timer.0.is_finished()
         && !can_occupy(&util::shifted(&piece_positions, IVec2::NEG_Y), &board)
     {
         for (entity, position) in active_piece_query.iter().zip(piece_positions.iter()) {
@@ -218,6 +220,7 @@ fn apply_gravity(
     mut gravity_timer: ResMut<GravityTimer>,
     board: Res<Board>,
     mut active_piece_state: ResMut<ActivePieceState>,
+    mut lock_timer: ResMut<LockTimer>,
 ) {
     gravity_timer.0.tick(time.delta());
 
@@ -228,13 +231,14 @@ fn apply_gravity(
         )
     {
         active_piece_state.anchor.shift(IVec2::NEG_Y);
-        active_piece_state.lock_timer.reset();
+        lock_timer.0.reset();
     }
 }
 
 fn move_piece(
     mut active_piece_state: ResMut<ActivePieceState>,
     mut reader: MessageReader<MovePiece>,
+    mut lock_timer: ResMut<LockTimer>,
     board: Res<Board>,
 ) {
     for movement in reader.read() {
@@ -245,18 +249,18 @@ fn move_piece(
                 if can_occupy(&util::shifted(&piece_positions, IVec2::NEG_Y), &board) {
                     active_piece_state.anchor.shift(IVec2::NEG_Y);
                 } else {
-                    active_piece_state.lock_timer.finish();
+                    lock_timer.0.finish();
                 }
             }
             Movement::Right => {
                 if can_occupy(&util::shifted(&piece_positions, IVec2::X), &board) {
-                    active_piece_state.lock_timer.reset();
+                    lock_timer.0.reset();
                     active_piece_state.anchor.shift(IVec2::X);
                 }
             }
             Movement::Left => {
                 if can_occupy(&util::shifted(&piece_positions, IVec2::NEG_X), &board) {
-                    active_piece_state.lock_timer.reset();
+                    lock_timer.0.reset();
                     active_piece_state.anchor.shift(IVec2::NEG_X);
                 }
             }
@@ -264,7 +268,7 @@ fn move_piece(
                 let delta_y = get_bottom_legal_position(&piece_positions, &board);
 
                 active_piece_state.anchor.shift(ivec2(0, -delta_y));
-                active_piece_state.lock_timer.finish();
+                lock_timer.0.finish();
             }
         }
     }
