@@ -214,7 +214,6 @@ fn lock_active_piece_on_bottom_collision(
 }
 
 fn apply_gravity(
-    mut query: Query<&mut Position, With<ActivePiece>>,
     time: Res<Time>,
     mut gravity_timer: ResMut<GravityTimer>,
     board: Res<Board>,
@@ -222,14 +221,12 @@ fn apply_gravity(
 ) {
     gravity_timer.0.tick(time.delta());
 
-    let positions: Vec<IVec2> = query.iter().map(|position| **position).collect();
     if gravity_timer.0.just_finished()
-        && can_occupy(&util::shifted(&positions, IVec2::NEG_Y), &board)
+        && can_occupy(
+            &util::shifted(&active_piece_state.positions(), IVec2::NEG_Y),
+            &board,
+        )
     {
-        for mut position in query.iter_mut() {
-            position.shift(IVec2::NEG_Y);
-        }
-
         active_piece_state.anchor.shift(IVec2::NEG_Y);
         active_piece_state.lock_timer.reset();
     }
