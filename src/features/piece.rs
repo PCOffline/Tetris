@@ -16,10 +16,10 @@ use crate::{
     },
 };
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 struct GravityTimer(Timer);
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 struct LockTimer(Timer);
 
 #[derive(Resource)]
@@ -222,16 +222,16 @@ fn apply_gravity(
     mut active_piece_state: ResMut<ActivePieceState>,
     mut lock_timer: ResMut<LockTimer>,
 ) {
-    gravity_timer.0.tick(time.delta());
+    gravity_timer.tick(time.delta());
 
-    if gravity_timer.0.just_finished()
+    if gravity_timer.just_finished()
         && can_occupy(
             &util::shifted(&active_piece_state.positions(), IVec2::NEG_Y),
             &board,
         )
     {
         active_piece_state.anchor.shift(IVec2::NEG_Y);
-        lock_timer.0.reset();
+        lock_timer.reset();
     }
 }
 
@@ -249,18 +249,18 @@ fn move_piece(
                 if can_occupy(&util::shifted(&piece_positions, IVec2::NEG_Y), &board) {
                     active_piece_state.anchor.shift(IVec2::NEG_Y);
                 } else {
-                    lock_timer.0.finish();
+                    lock_timer.finish();
                 }
             }
             Movement::Right => {
                 if can_occupy(&util::shifted(&piece_positions, IVec2::X), &board) {
-                    lock_timer.0.reset();
+                    lock_timer.reset();
                     active_piece_state.anchor.shift(IVec2::X);
                 }
             }
             Movement::Left => {
                 if can_occupy(&util::shifted(&piece_positions, IVec2::NEG_X), &board) {
-                    lock_timer.0.reset();
+                    lock_timer.reset();
                     active_piece_state.anchor.shift(IVec2::NEG_X);
                 }
             }
@@ -268,7 +268,7 @@ fn move_piece(
                 let delta_y = get_bottom_legal_position(&piece_positions, &board);
 
                 active_piece_state.anchor.shift(ivec2(0, -delta_y));
-                lock_timer.0.finish();
+                lock_timer.finish();
             }
         }
     }
@@ -290,7 +290,7 @@ fn rotate_piece(
 
         if can_occupy(&new_positions, &board) {
             active_piece_state.rotation = next_rotation_index;
-            lock_timer.0.reset();
+            lock_timer.reset();
         }
     }
 }
