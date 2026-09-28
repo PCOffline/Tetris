@@ -88,7 +88,6 @@
 - [x] Register the states in `main.rs` instead of `PiecePlugin`
 - [x] Tear down ghost pieces on `OnExit(PlayState::Falling)` instead of on `PieceLocked`
 - [x] Spawn the next piece even if the game is paused while entering `Spawning`
-- [ ] Log when a block's `Position` and the `Board` disagree
 - [x] Fix pieces merging into locked blocks on lock
 - [x] Make row shifting independent of query iteration order
 - [x] Validate moves and rotations against `ActivePieceState` instead of `Position`
@@ -97,12 +96,13 @@
 - [x] Separate the lock timer from `ActivePieceState`
 - [x] Run the lock timer only while the piece touches something
 - [x] One owner for the state change after a piece locks
-- [ ] Gate `toggle_pause_on_keyboard_input` on `Playing`
 - [x] Fix the `retain` in `spawn_piece`
+- [ ] Split `piece.rs` into spawn, active piece, lock and clearing modules
+- [ ] Make it impossible for `Board` and `Position` to disagree, enforced by types
+- [ ] Gate `toggle_pause_on_keyboard_input` on `Playing`
 - [ ] Represent "no active piece" properly instead of the dummy `ActivePieceState::default()`
 - [ ] Choose the initial `GameState` from the debug config and wire up `auto_start` and `Menu`
 - [ ] Stop reading `DebugConfig` at plugin build time
-- [ ] Split `piece.rs` into spawn, active piece, lock and clearing modules
 
 ## Phase 10: Concepts to Learn
 - [x] Gating systems with `run_if(in_state(..))`

@@ -1,10 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    features::{
-        board::Board,
-        piece::{ActivePieceState, get_bottom_legal_position},
-    },
+    features::{board::Board, piece::ActivePieceState},
     global::{
         components::{ActivePiece, Position},
         constants::PADDING_SIZE,
@@ -28,7 +25,7 @@ impl Plugin for GhostPlugin {
 pub struct GhostBlock;
 
 fn get_ghost_positions(active_piece_positions: &[IVec2], board: &Board) -> Vec<IVec2> {
-    let delta_y = get_bottom_legal_position(active_piece_positions, board);
+    let delta_y = board.get_bottom_legal_position(active_piece_positions);
     util::shifted(active_piece_positions, ivec2(0, -delta_y))
 }
 

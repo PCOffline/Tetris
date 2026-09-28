@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::global::constants::*;
+use crate::global::{constants::*, util};
 
 #[derive(Resource)]
 pub struct Board {
@@ -54,5 +54,25 @@ impl Board {
         }
 
         self.cells[pos.x as usize][pos.y as usize]
+    }
+
+    pub fn can_occupy(&self, proposed: &[IVec2]) -> bool {
+        proposed.iter().all(|proposed_position| {
+            self.in_bounds(proposed_position) && !self.is_occupied(proposed_position)
+        })
+    }
+
+    pub fn get_bottom_legal_position(&self, current: &[IVec2]) -> i32 {
+        let mut delta = 0;
+
+        loop {
+            let next = util::shifted(current, ivec2(0, -(delta + 1)));
+
+            if !self.can_occupy(&next) {
+                return delta;
+            }
+
+            delta += 1;
+        }
     }
 }
