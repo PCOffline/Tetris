@@ -35,7 +35,7 @@
 - [x] Game over detection (piece spawns overlapping existing blocks → `GameState::Ended`)
 - [ ] Game over screen (display message, final score)
 - [ ] Start / title screen
-- [ ] Pause menu (`Escape` or `P` to toggle `GameState::Paused`)
+- [ ] Pause menu (`Escape` or `P` to toggle `GameState::Menu`)
 - [ ] Restart functionality (reset board, score, and level)
 
 ## Phase 5: Aesthetics & Polish
@@ -99,7 +99,7 @@
 - [x] Fix the `retain` in `spawn_piece`
 - [ ] Split `piece.rs` into spawn, active piece, lock and clearing modules
 - [ ] Make it impossible for `Board` and `Position` to disagree, enforced by types
-- [ ] Gate `toggle_pause_on_keyboard_input` on `Playing`
+- [X] Gate `toggle_pause_on_keyboard_input` on `Playing`
 - [ ] Represent "no active piece" properly instead of the dummy `ActivePieceState::default()`
 - [ ] Choose the initial `GameState` from the debug config and wire up `auto_start` and `Menu`
 - [ ] Stop reading `DebugConfig` at plugin build time

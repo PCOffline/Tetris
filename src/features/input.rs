@@ -13,7 +13,7 @@ impl Plugin for InputPlugin {
             Update,
             (
                 move_piece_on_keyboard_input.run_if(in_state(IsPaused::Unpaused)),
-                toggle_pause_on_keyboard_input.run_if(not(in_state(GameState::Ended))),
+                toggle_pause_on_keyboard_input.run_if(in_state(GameState::Playing)),
             ),
         );
     }
