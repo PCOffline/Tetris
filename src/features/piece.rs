@@ -72,7 +72,7 @@ impl Plugin for PiecePlugin {
                     (
                         (move_piece, rotate_piece).in_set(PieceMovementSet),
                         lock_active_piece_on_bottom_collision,
-                        mark_filled_row_for_clearing,
+                        resolve_state_after_lock,
                     )
                         .chain()
                         .run_if(in_state(PlayState::Falling)),
@@ -196,7 +196,6 @@ fn lock_active_piece_on_bottom_collision(
     active_piece_state: ResMut<ActivePieceState>,
     mut board: ResMut<Board>,
     mut piece_locked_message: MessageWriter<PieceLocked>,
-    mut play_state: ResMut<NextState<PlayState>>,
     time: Res<Time>,
     mut lock_timer: ResMut<LockTimer>,
 ) {
@@ -216,7 +215,6 @@ fn lock_active_piece_on_bottom_collision(
         }
 
         piece_locked_message.write(PieceLocked);
-        play_state.set(PlayState::Spawning);
     }
 }
 
@@ -352,7 +350,7 @@ fn delete_filled_row(
     }
 }
 
-fn mark_filled_row_for_clearing(
+fn resolve_state_after_lock(
     mut commands: Commands,
     board: Res<Board>,
     mut reader: MessageReader<PieceLocked>,
@@ -383,6 +381,8 @@ fn mark_filled_row_for_clearing(
 
         if row_cleared {
             play_state.set(PlayState::Clearing);
+        } else {
+            play_state.set(PlayState::Spawning);
         }
     }
 }

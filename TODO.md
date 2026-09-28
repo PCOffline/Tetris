@@ -96,7 +96,7 @@
 - [x] Make `apply_gravity` use `ActivePieceState` instead of `Position`
 - [x] Separate the lock timer from `ActivePieceState`
 - [x] Run the lock timer only while the piece touches something
-- [ ] One owner for the state change after a piece locks
+- [x] One owner for the state change after a piece locks
 - [ ] Gate `toggle_pause_on_keyboard_input` on `Playing`
 - [x] Fix the `retain` in `spawn_piece`
 - [ ] Represent "no active piece" properly instead of the dummy `ActivePieceState::default()`
@@ -116,7 +116,7 @@
 - [ ] Pausing `Time<Virtual>`
 - [ ] `NextState::set` is a request applied in `StateTransition`, hence one frame in `Spawning`
 - [ ] `Commands` are deferred
-- [ ] `NextState` is last-write-wins
+- [x] `NextState` is last-write-wins
 - [ ] Messages vs states
 - [ ] Systems with conflicting access and no ordering run in arbitrary order
 - [ ] Change detection and `ResMut`
