@@ -166,9 +166,9 @@ fn spawn_next_piece(
     mut commands: Commands,
     mut play_state: ResMut<NextState<PlayState>>,
     mut game_state: ResMut<NextState<GameState>>,
+    mut lock_timer: ResMut<LockTimer>,
     board: Res<Board>,
 ) {
-    log::info!("Spawning piece.");
     let random = rand::random::<u8>() % 7;
     let tetromino = TETROMINOES.get(random as usize).expect("Random should always be moduloed by the length of the Tetromino enum, so never should be an invalid integer").to_owned();
     // TODO: Make them spawn so that it always touches the top? Or above the board?
@@ -186,6 +186,8 @@ fn spawn_next_piece(
         rotation,
         anchor: anchor.into(),
     });
+
+    lock_timer.reset();
 }
 
 fn lock_active_piece_on_bottom_collision(
@@ -198,13 +200,16 @@ fn lock_active_piece_on_bottom_collision(
     time: Res<Time>,
     mut lock_timer: ResMut<LockTimer>,
 ) {
-    lock_timer.0.tick(time.delta());
-
     let piece_positions: Vec<IVec2> = active_piece_state.positions();
 
-    if lock_timer.0.is_finished()
-        && !can_occupy(&util::shifted(&piece_positions, IVec2::NEG_Y), &board)
-    {
+    if can_occupy(&util::shifted(&piece_positions, IVec2::NEG_Y), &board) {
+        lock_timer.reset();
+        return;
+    }
+
+    lock_timer.tick(time.delta());
+
+    if lock_timer.is_finished() {
         for (entity, position) in active_piece_query.iter().zip(piece_positions.iter()) {
             board.set(*position, entity);
             commands.entity(entity).remove::<ActivePiece>();
@@ -220,7 +225,6 @@ fn apply_gravity(
     mut gravity_timer: ResMut<GravityTimer>,
     board: Res<Board>,
     mut active_piece_state: ResMut<ActivePieceState>,
-    mut lock_timer: ResMut<LockTimer>,
 ) {
     gravity_timer.tick(time.delta());
 
@@ -231,7 +235,6 @@ fn apply_gravity(
         )
     {
         active_piece_state.anchor.shift(IVec2::NEG_Y);
-        lock_timer.reset();
     }
 }
 
