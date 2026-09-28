@@ -278,6 +278,7 @@ fn rotate_piece(
     mut active_piece_state: ResMut<ActivePieceState>,
     board: Res<Board>,
     mut reader: MessageReader<RotatePiece>,
+    mut lock_timer: ResMut<LockTimer>,
 ) {
     for _ in reader.read() {
         let next_rotation_index = (active_piece_state.rotation + 1) % ROTATION_CYCLES;
@@ -289,6 +290,7 @@ fn rotate_piece(
 
         if can_occupy(&new_positions, &board) {
             active_piece_state.rotation = next_rotation_index;
+            lock_timer.0.reset();
         }
     }
 }
