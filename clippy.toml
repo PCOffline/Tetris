@@ -1,0 +1,15 @@
+# Bevy systems routinely take many params and long Query types.
+too-many-arguments-threshold = 10
+type-complexity-threshold = 300
+cognitive-complexity-threshold = 20
+too-many-lines-threshold = 100
+
+# Tests may unwrap/expect/panic/index freely.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+allow-print-in-tests = true
+
+# Idiomatic names Bevy/Tetris code uses that aren't typos.
+doc-valid-idents = ["Bevy", "ECS", "..", "Tetris", "SRS"]

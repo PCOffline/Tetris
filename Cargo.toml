@@ -21,6 +21,65 @@ bevy_rand = "0.14.2"
 bevy_prng = { version = "0.14.2", features = ["wyrand"] }
 rand = "0.10.1"
 
+# ─── Lints: strict, but tuned for learning idiomatic Rust + Bevy ─────
+# Everything is `warn` (not `deny`) so the build never breaks; treat each
+# warning as a lesson. Groups get priority -1 so individual lints below
+# can override them.
+
+[lints.rust]
+unsafe_code = "forbid"
+unused_qualifications = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+# Default groups plus pedantic (the "idiomatic Rust" group).
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+# Pedantic lints that fight Bevy or a binary crate, not worth the noise:
+# Bevy system params (`Res<T>`, `Query<..>`) must be taken by value.
+needless_pass_by_value = "allow"
+# Bevy plugins/components are conventionally named `FooPlugin` in `foo`.
+module_name_repetitions = "allow"
+# Binary crate: no public API to document or annotate.
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+# Grid math (usize index <-> f32 world coords) can't avoid `as` casts, and
+# precision loss on small board sizes is irrelevant.
+cast_precision_loss = "allow"
+
+# Restriction lints cherry-picked for learning good habits.
+unwrap_used = "warn"             # handle the Option/Result or use `expect`
+expect_used = "warn"             # forces a deliberate choice; allow with a reason
+panic = "warn"
+indexing_slicing = "warn"        # prefer `.get()`; panics hide in `[]`
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+print_stdout = "warn"            # use `log`/`bevy::log` instead
+print_stderr = "warn"
+clone_on_ref_ptr = "warn"
+rest_pat_in_fully_bound_structs = "warn"
+allow_attributes = "warn"        # prefer `#[expect]`, which errors when stale
+allow_attributes_without_reason = "warn"
+mem_forget = "warn"
+fn_params_excessive_bools = "warn"
+lossy_float_literal = "warn"
+unneeded_field_pattern = "warn"
+verbose_file_reads = "warn"
+
+# Nursery lints that are stable enough and genuinely instructive.
+redundant_clone = "warn"
+use_self = "warn"
+option_if_let_else = "warn"
+cognitive_complexity = "warn"
+needless_collect = "warn"
+trait_duplication_in_bounds = "warn"
+equatable_if_let = "warn"
+
 # ─── Dev: fastest compile times, moderate perf ───────────────────────
 
 [profile.dev]

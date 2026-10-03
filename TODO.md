@@ -103,6 +103,8 @@
 - [ ] Represent "no active piece" properly instead of the dummy `ActivePieceState::default()`
 - [ ] Choose the initial `GameState` from the debug config and wire up `auto_start` and `Menu`
 - [ ] Stop reading `DebugConfig` at plugin build time
+- [x] Configure strict clippy lints (`Cargo.toml` `[lints]`, `clippy.toml`)
+- [ ] Work through the clippy warnings from the strict lint config
 
 ## Phase 10: Concepts to Learn
 - [x] Gating systems with `run_if(in_state(..))`
