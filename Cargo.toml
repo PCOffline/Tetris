@@ -28,6 +28,7 @@ rand = "0.10.1"
 
 [lints.rust]
 unsafe_code = "forbid"
+unused_must_use = "deny"
 unused_qualifications = "warn"
 trivial_casts = "warn"
 trivial_numeric_casts = "warn"
@@ -44,7 +45,11 @@ needless_pass_by_value = "allow"
 # Bevy plugins/components are conventionally named `FooPlugin` in `foo`.
 module_name_repetitions = "allow"
 # Binary crate: no public API to document or annotate.
-must_use_candidate = "allow"
+must_use_candidate = "deny"
+must_use_unit = "deny"
+double_must_use = "deny"
+return_self_not_must_use = "deny"
+let_underscore_must_use = "deny"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
 # Grid math (usize index <-> f32 world coords) can't avoid `as` casts, and
@@ -56,16 +61,16 @@ unwrap_used = "warn"             # handle the Option/Result or use `expect`
 expect_used = "warn"             # forces a deliberate choice; allow with a reason
 panic = "warn"
 indexing_slicing = "warn"        # prefer `.get()`; panics hide in `[]`
-dbg_macro = "warn"
-todo = "warn"
-unimplemented = "warn"
+dbg_macro = "deny"
+todo = "deny"
+unimplemented = "deny"
 print_stdout = "warn"            # use `log`/`bevy::log` instead
 print_stderr = "warn"
 clone_on_ref_ptr = "warn"
 rest_pat_in_fully_bound_structs = "warn"
 allow_attributes = "warn"        # prefer `#[expect]`, which errors when stale
 allow_attributes_without_reason = "warn"
-mem_forget = "warn"
+mem_forget = "deny"
 fn_params_excessive_bools = "warn"
 lossy_float_literal = "warn"
 unneeded_field_pattern = "warn"
